@@ -37,7 +37,7 @@ app.get("/", async (req, res) => {
       .input("sortColumn", sql.NVarChar, req.query.sortColumn)
       .query(booksQuery);
 
-    // let querySort = req.query.sortColumn ?? "Titel";
+    let querySort = req.query.sortColumn;
     if (!querySort) querySort = "Titel";
     const lookup = {
       ISBN13: "ISBN13",
