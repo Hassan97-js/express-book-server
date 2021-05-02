@@ -1,0 +1,19 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+  body.container
+    h1.mt-3.bg-dark.text-white.p-3 Bok Lista 📚
+    table.table.table-striped.mt-4.table-dark.table-bordered.table-hover
+      thead
+        tr
+          if books
+            each val, key in books[0]
+              th(class="Cursor th-test" onClick=`window.location = '/?sortColumn=${key}';`)= key
+                if lookup[querySort] === key
+                  i(class="fas fa-arrow-down ml-2")
+
+      tbody
+        each book in books
+          tr(class="Cursor" onClick=`window.location = '/book/${book.ISBN13}';`)
+            each bookItem in book
+              td= bookItem

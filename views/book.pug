@@ -1,0 +1,29 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+  body.container
+    h1.mt-3.bg-dark.text-white.p-3 Bok Information 📖
+    img(src= "https://image.bokus.com/images/" + book.ISBN13, alt="Book cover image" class="img-fluid")
+    table.table.table-striped.mt-2.table-dark.table-bordered.table-hover
+      thead
+        tr
+          if book
+            each val, key in book
+              th=key
+      tbody
+        tr
+          each val, key in book
+            td= val
+    a(href="/" class="btn btn-lg btn-info") Tillbaka till hemsidan
+    h2.h1.mt-3.bg-dark.text-white.p-3 Antal böcker i bokhandeln 🏪
+    table.table.table-striped.mt-4.table-dark.table-bordered.table-hover
+      thead
+        tr
+          if bookInButics
+            each val, key in bookInButics[0]
+              th=key
+      tbody
+        each bookInButic in bookInButics
+          tr
+            each val, key in bookInButic
+              td= val
