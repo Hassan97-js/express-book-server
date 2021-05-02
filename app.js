@@ -91,6 +91,8 @@ JOIN Butiker bt ON bt.ID = lgs.ButiksID
 WHERE ISBN13 = @bookId;
 `;
 
+let bookTitle_Global;
+
 app.get("/book/:bookId", async (req, res) => {
   try {
     const connection = await sql.connect(process.env.CONNECTION);
@@ -104,13 +106,21 @@ app.get("/book/:bookId", async (req, res) => {
       .query(bookButicsQuery);
     const book = result.recordset[0];
     const bookInButics = buticsResult.recordset;
+    const bookISBN = book.ISBN13;
+    bookTitle_Global = book.Titel;
     for (const bookInButic of bookInButics) {
       if (bookInButic.Antal === 0) bookInButic.Antal = "Ej i lager";
     }
-    res.render("book", { book, bookInButics });
+    res.render("book", { book, bookInButics, bookISBN });
   } catch (err) {
     console.error(err);
   }
+});
+
+app.get("/:bookId/edit", async (req, res) => {
+  //const connection = await sql.connect(process.env.CONNECTION);
+  // const result = await connection.request().query();
+  res.render("bookEdit", { bookTitle: bookTitle_Global });
 });
 
 app.all("*", (req, res) => {

@@ -3,8 +3,9 @@ html(lang="en")
   include includes/head.pug
   body.container
     h1.mt-3.bg-dark.text-white.p-3 Bok Information 📖
-    img(src= "https://image.bokus.com/images/" + book.ISBN13, alt="Book cover image" class="img-fluid")
-    table.table.table-striped.mt-2.table-dark.table-bordered.table-hover
+    img(src= "https://image.bokus.com/images/" + book.ISBN13, alt="Book cover image" class="img-fluid d-block mb-2")
+    a(href=`/${bookISBN}/edit` class="btn btn-lg btn-primary") Redigera boken
+    table.table.table-striped.mt-2.table-dark.table-bordered.table-hover.mb-2
       thead
         tr
           if book
@@ -15,8 +16,8 @@ html(lang="en")
           each val, key in book
             td= val
     a(href="/" class="btn btn-lg btn-info") Tillbaka till hemsidan
-    h2.h1.mt-3.bg-dark.text-white.p-3 Antal böcker i bokhandeln 🏪
-    table.table.table-striped.mt-4.table-dark.table-bordered.table-hover
+    h2.h1.mt-2.bg-dark.text-white.p-3 Antal böcker i bokhandeln 🏪
+    table.table.table-striped.mt-2.table-dark.table-bordered.table-hover
       thead
         tr
           if bookInButics

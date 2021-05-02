@@ -1,0 +1,25 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+  body.container
+    if bookTitle
+      h1.bg-dark.p-3.text-white.mt-3 Redigera boken: (#{bookTitle})
+    else
+      h1 Du har inte valt nån bok.
+    form(action="" method="POST")
+      .form-group.mt-4
+        label(for="titel" class="h4") Bokens Titel
+        input(type="text" class="form-control w-25" id="titel" aria-describedby="editBookHelp" placeholder="Ange bokens titel")
+      .form-group
+        label(for="författare"  class="h4") Bokens Författare
+        input(type="text" class="form-control w-25" id="författare" placeholder="Ange bokens författare")
+      .form-group
+        label(for="pris"  class="h4") Bokens Pris
+        input(type="text" class="form-control w-25" id="pris" placeholder="Ange bokens pris")
+      .form-group
+        label(for="utgivningsdatum"  class="h4") Bokens Utgivningsdatum
+        input(type="text" class="form-control w-25" id="utgivningsdatum" placeholder="Ange bokens utgivningsdatum")
+      .form-group
+        label(for="förlag"  class="h4") Bokens Förlag
+        input(type="text" class="form-control w-25" id="förlag" placeholder="Ange bokens förlag")
+        button(type="submit" class="btn btn-success btn-lg mt-3") Skicka
