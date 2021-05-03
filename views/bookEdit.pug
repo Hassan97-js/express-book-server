@@ -2,24 +2,31 @@ doctype html
 html(lang="en")
   include includes/head.pug
   body.container
-    if bookTitle
-      h1.bg-dark.p-3.text-white.mt-3 Redigera boken: (#{bookTitle})
+    if books
+      h1.bg-dark.p-3.text-white.mt-3 Redigera boken: (#{books[0].Titel})
     else
-      h1 Du har inte valt nån bok.
-    form(action="" method="POST")
-      .form-group.mt-4
-        label(for="titel" class="h4") Bokens Titel
-        input(type="text" class="form-control w-25" id="titel" aria-describedby="editBookHelp" placeholder="Ange bokens titel")
-      .form-group
-        label(for="författare"  class="h4") Bokens Författare
-        input(type="text" class="form-control w-25" id="författare" placeholder="Ange bokens författare")
-      .form-group
-        label(for="pris"  class="h4") Bokens Pris
-        input(type="text" class="form-control w-25" id="pris" placeholder="Ange bokens pris")
-      .form-group
-        label(for="utgivningsdatum"  class="h4") Bokens Utgivningsdatum
-        input(type="text" class="form-control w-25" id="utgivningsdatum" placeholder="Ange bokens utgivningsdatum")
-      .form-group
-        label(for="förlag"  class="h4") Bokens Förlag
-        input(type="text" class="form-control w-25" id="förlag" placeholder="Ange bokens förlag")
-        button(type="submit" class="btn btn-success btn-lg mt-3") Skicka
+      h1.bg-warning.p-3.mt-3 Du har inte valt nån bok.
+    form(method="POST")
+      if books
+        each book in books
+          .form-group.mt-4
+            label(for="titel" class="h4") Titel
+            input(type="text" name="titel" class="form-control w-25" id="titel" aria-describedby="editBookHelp" value=`${book.Titel}`)
+            //- hidden input
+            input(type="hidden" name="ISBN" class="form-control w-25" id="ISBN" aria-describedby="editBookHelp" value=`${book.ISBN13}`)
+            //- ---
+          .form-group
+            label(for="författare"  class="h4") Författare
+            select(multiple name="författare" class="form-control w-25" id="författare")
+              each author in authors
+                option= author.Förnamn + " " +  author.Efternamn
+          .form-group
+            label(for="pris"  class="h4") Pris
+            input(type="text" name="pris" class="form-control w-25" id="pris" value=`${book.Pris}`)
+          .form-group
+            label(for="utgivningsdatum"  class="h4") Utgivningsdatum
+            input(type="text" name="utgivningsdatum" class="form-control w-25" id="utgivningsdatum" value=`${book.Utgivningsdatum}`)
+          .form-group
+            label(for="förlag"  class="h4") Förlag
+            input(type="text" name="förlag" class="form-control w-25" id="förlag" value=`${book.Förlag}`)
+          button(type="submit" class="btn btn-success btn-lg mt-3") Spara ändringar

@@ -8,6 +8,7 @@ require("dotenv").config();
 // middlewares
 // app.use(express.static("./public"));
 app.use("/public", express.static("./public"));
+app.use(express.urlencoded());
 
 // view engine
 app.set("view engine", "pug");
@@ -91,8 +92,6 @@ JOIN Butiker bt ON bt.ID = lgs.ButiksID
 WHERE ISBN13 = @bookId;
 `;
 
-let bookTitle_Global;
-
 app.get("/book/:bookId", async (req, res) => {
   try {
     const connection = await sql.connect(process.env.CONNECTION);
@@ -107,7 +106,6 @@ app.get("/book/:bookId", async (req, res) => {
     const book = result.recordset[0];
     const bookInButics = buticsResult.recordset;
     const bookISBN = book.ISBN13;
-    bookTitle_Global = book.Titel;
     for (const bookInButic of bookInButics) {
       if (bookInButic.Antal === 0) bookInButic.Antal = "Ej i lager";
     }
@@ -117,10 +115,77 @@ app.get("/book/:bookId", async (req, res) => {
   }
 });
 
+const editBookQuery = `
+SELECT
+  ISBN13,
+  Titel,
+  CONCAT(f.Förnamn, ' ', f.Efternamn) AS Författare,
+  Pris,
+  Utgivningsdatum,
+  fl.Namn AS Förlag
+FROM
+  Böcker b
+JOIN BöckerFörfattare bf ON b.ISBN13 = bf.BokID
+JOIN Författare f ON f.ID = bf.FörfattarID
+JOIN Förlag fl ON fl.FörlagsID = b.FörlagsID
+WHERE ISBN13 = @bookId;
+`;
+
+const allAuthorsQuery = `
+SELECT
+	Förnamn,
+  Efternamn
+FROM Författare;
+`;
+
 app.get("/:bookId/edit", async (req, res) => {
-  //const connection = await sql.connect(process.env.CONNECTION);
-  // const result = await connection.request().query();
-  res.render("bookEdit", { bookTitle: bookTitle_Global });
+  const bookId = req.params.bookId;
+  const connection = await sql.connect(process.env.CONNECTION);
+  const result = await connection
+    .request()
+    .input("bookId", sql.NVarChar, bookId)
+    .query(editBookQuery);
+
+  const result_authors = await connection.request().query(allAuthorsQuery);
+
+  const books = result.recordset;
+  const authors = result_authors.recordset;
+
+  for (const book of books) {
+    if (book.Utgivningsdatum) {
+      let bookDate = new Date(book.Utgivningsdatum);
+      const bookDay = String(bookDate.getDate()).padStart(2, "0");
+      const bookMonth = String(bookDate.getMonth()).padStart(2, "0");
+      const bookYear = bookDate.getFullYear();
+      bookDate = `${bookMonth}/${bookDay}/${bookYear}`;
+      book.Utgivningsdatum = bookDate;
+    }
+  }
+
+  res.render("bookEdit", { books, authors });
+});
+
+const updateBookQuery = `
+UPDATE Böcker
+SET Titel = @updateTitle
+WHERE ISBN13 = @ISNB;
+
+--UPDATE Författare
+--SET Förnamn = SUBSTRING(@updateName, 0, CHARINDEX(' ', @updateName)), Efternamn = SUBSTRING--(@updateName, CHARINDEX(' ', @updateName), @updateName.length)
+--WHERE ISBN13 = @ISNB;
+`;
+
+app.post("/:bookId/edit", async (req, res) => {
+  const bookId = req.body.ISBN;
+  const connection = await sql.connect(process.env.CONNECTION);
+  await connection
+    .request()
+    .input("updateTitle", sql.NVarChar, req.body.titel)
+    .input("ISNB", sql.NVarChar, req.body.ISBN)
+    // .input("updateName", sql.NVarChar, req.body.författare)
+    .query(updateBookQuery);
+  console.log(req.body.författare);
+  res.redirect(303, `/${bookId}/edit`);
 });
 
 app.all("*", (req, res) => {
