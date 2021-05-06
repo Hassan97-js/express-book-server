@@ -6,9 +6,8 @@ const sql = require("mssql");
 require("dotenv").config();
 
 // middlewares
-// app.use(express.static("./public"));
 app.use("/public", express.static("./public"));
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended: true }));
 
 // view engine
 app.set("view engine", "pug");
@@ -109,9 +108,19 @@ app.get("/book/:bookId", async (req, res) => {
     for (const bookInButic of bookInButics) {
       if (bookInButic.Antal === 0) bookInButic.Antal = "Ej i lager";
     }
+    for (const bookItem in book) {
+      if (bookItem === "Utgivningsdatum") {
+        let bookDate = new Date(book[bookItem]);
+        const bookDay = String(bookDate.getDate()).padStart(2, "0");
+        const bookMonth = String(bookDate.getMonth() + 1).padStart(2, "0");
+        const bookYear = bookDate.getFullYear();
+        bookDate = `${bookYear}-${bookMonth}-${bookDay}`;
+        book[bookItem] = bookDate;
+      }
+    }
     res.render("book", { book, bookInButics, bookISBN });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
   }
 });
 
@@ -131,61 +140,139 @@ JOIN Förlag fl ON fl.FörlagsID = b.FörlagsID
 WHERE ISBN13 = @bookId;
 `;
 
-const allAuthorsQuery = `
+const authorsQuery = `
 SELECT
-	Förnamn,
-  Efternamn
+  Förnamn,
+  Efternamn,
+  ID
 FROM Författare;
 `;
 
+let errMessage = "";
+
 app.get("/:bookId/edit", async (req, res) => {
-  const bookId = req.params.bookId;
-  const connection = await sql.connect(process.env.CONNECTION);
-  const result = await connection
-    .request()
-    .input("bookId", sql.NVarChar, bookId)
-    .query(editBookQuery);
+  try {
+    const bookId = req.params.bookId;
+    const connection = await sql.connect(process.env.CONNECTION);
+    const result = await connection
+      .request()
+      .input("bookId", sql.NVarChar, bookId)
+      .query(editBookQuery);
 
-  const result_authors = await connection.request().query(allAuthorsQuery);
+    const result_authors = await connection.request().query(authorsQuery);
 
-  const books = result.recordset;
-  const authors = result_authors.recordset;
+    const books = result.recordset;
+    const authors = result_authors.recordset;
 
-  for (const book of books) {
-    if (book.Utgivningsdatum) {
-      let bookDate = new Date(book.Utgivningsdatum);
-      const bookDay = String(bookDate.getDate()).padStart(2, "0");
-      const bookMonth = String(bookDate.getMonth()).padStart(2, "0");
-      const bookYear = bookDate.getFullYear();
-      bookDate = `${bookMonth}/${bookDay}/${bookYear}`;
-      book.Utgivningsdatum = bookDate;
+    for (const book of books) {
+      if (book.Utgivningsdatum) {
+        let bookDate = new Date(book.Utgivningsdatum);
+        const bookDay = String(bookDate.getDate()).padStart(2, "0");
+        const bookMonth = String(bookDate.getMonth() + 1).padStart(2, "0");
+        const bookYear = bookDate.getFullYear();
+        bookDate = `${bookYear}-${bookMonth}-${bookDay}`;
+        book.Utgivningsdatum = bookDate;
+      }
     }
+    res.render("bookEdit", { books, authors, errMessage });
+    errMessage = "";
+  } catch (err) {
+    console.error(err.message);
   }
-
-  res.render("bookEdit", { books, authors });
 });
 
 const updateBookQuery = `
 UPDATE Böcker
 SET Titel = @updateTitle
-WHERE ISBN13 = @ISNB;
+WHERE ISBN13 = @ISBN;
 
---UPDATE Författare
---SET Förnamn = SUBSTRING(@updateName, 0, CHARINDEX(' ', @updateName)), Efternamn = SUBSTRING--(@updateName, CHARINDEX(' ', @updateName), @updateName.length)
---WHERE ISBN13 = @ISNB;
+UPDATE Böcker
+SET Utgivningsdatum = @updateUtgivningsdatum
+WHERE ISBN13 = @ISBN;
+
+UPDATE Böcker
+SET Pris = @updatePris
+WHERE ISBN13 = @ISBN;
+
+UPDATE BöckerFörfattare
+SET FörfattarID = @fId
+WHERE BokID = @ISBN;
+
+UPDATE Böcker
+SET FörlagsID = @pubishId
+WHERE ISBN13 = @ISBN;
+`;
+
+const getAuthorId = `
+SELECT
+	ID
+FROM
+	Författare
+WHERE Förnamn = @firstName AND Efternamn= @lastName;
+`;
+
+const getPublisherId = `
+SELECT
+    FörlagsID
+FROM
+	Förlag
+WHERE Namn = @publishName
 `;
 
 app.post("/:bookId/edit", async (req, res) => {
-  const bookId = req.body.ISBN;
-  const connection = await sql.connect(process.env.CONNECTION);
-  await connection
-    .request()
-    .input("updateTitle", sql.NVarChar, req.body.titel)
-    .input("ISNB", sql.NVarChar, req.body.ISBN)
-    // .input("updateName", sql.NVarChar, req.body.författare)
-    .query(updateBookQuery);
-  console.log(req.body.författare);
-  res.redirect(303, `/${bookId}/edit`);
+  try {
+    const bookId = req.body.ISBN;
+
+    // Författare
+    let bookAuthor = req.body.författare;
+    if (!bookAuthor) {
+      bookAuthor = req.body.bokFörfattare;
+    }
+    const authorName = bookAuthor.match(/([\w+]+)/g);
+
+    // Utgivningsdatum
+    if (req.body.utgivningsdatum) {
+      const bookDatePattern = /^\d{4}\-\d{1,2}\-\d{1,2}$/;
+      if (!bookDatePattern.test(req.body.utgivningsdatum)) {
+        errMessage = "Datumet måste matcha mönstret yyyy-mm-dd";
+        res.redirect(`/${bookId}/edit`);
+        return;
+      }
+    } else if (req.body.utgivningsdatum === "") {
+      errMessage = "Datumfältet får inte vara tom";
+      res.redirect(`/${bookId}/edit`);
+      return;
+    }
+    // Server connnection/update/BokTitel+Pris+Utgivningsdatum
+    const connection = await sql.connect(process.env.CONNECTION);
+    const result_authorId = await connection
+      .request()
+      .input("firstName", sql.NVarChar, authorName[0])
+      .input("lastName", sql.NVarChar, authorName[1])
+      .query(getAuthorId);
+    const authorId = result_authorId.recordset[0].ID;
+
+    const result_publisherId = await connection
+      .request()
+      .input("publishName", sql.NVarChar, req.body.förlag)
+      .query(getPublisherId);
+    const publisherId = result_publisherId.recordset[0].FörlagsID;
+
+    // update queries
+    await connection
+      .request()
+      .input("updateTitle", sql.NVarChar, req.body.titel)
+      .input("ISBN", sql.NVarChar, req.body.ISBN)
+      .input("fId", sql.Int, authorId)
+      .input("pubishId", sql.Int, publisherId)
+      .input("updatePris", sql.Int, req.body.pris)
+      .input("updateUtgivningsdatum", sql.DateTime2, req.body.utgivningsdatum)
+      .query(updateBookQuery);
+
+    res.redirect(303, `/book/${bookId}`);
+  } catch (err) {
+    console.error(err.message);
+  }
 });
 
 app.all("*", (req, res) => {

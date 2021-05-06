@@ -15,6 +15,9 @@ html(lang="en")
             //- hidden input
             input(type="hidden" name="ISBN" class="form-control w-25" id="ISBN" aria-describedby="editBookHelp" value=`${book.ISBN13}`)
             //- ---
+            //- hidden input
+            input(type="hidden" name="bokFörfattare" class="form-control w-25" id="bookFörfattare" aria-describedby="editBookHelp" value=`${book.Författare}`)
+            //- ---
           .form-group
             label(for="författare"  class="h4") Författare
             select(multiple name="författare" class="form-control w-25" id="författare")
@@ -26,6 +29,8 @@ html(lang="en")
           .form-group
             label(for="utgivningsdatum"  class="h4") Utgivningsdatum
             input(type="text" name="utgivningsdatum" class="form-control w-25" id="utgivningsdatum" value=`${book.Utgivningsdatum}`)
+            if errMessage
+              small(class="text-danger")= errMessage
           .form-group
             label(for="förlag"  class="h4") Förlag
             input(type="text" name="förlag" class="form-control w-25" id="förlag" value=`${book.Förlag}`)
