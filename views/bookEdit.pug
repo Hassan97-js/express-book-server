@@ -1,6 +1,6 @@
 doctype html
 html(lang="en")
-  include includes/head.pug
+  include includes/bookEditHead.pug
   body.container
     if books
       h1.bg-dark.p-3.text-white.mt-3 Redigera boken: (#{books[0].Titel})
@@ -9,7 +9,7 @@ html(lang="en")
     form(method="POST")
       if books
         each book in books
-          .form-group.mt-4
+          .form-group.mt-4.form-titel
             label(for="titel" class="h4") Titel
             input(type="text" name="titel" class="form-control w-25" id="titel" aria-describedby="editBookHelp" value=`${book.Titel}`)
             //- hidden input
@@ -18,20 +18,21 @@ html(lang="en")
             //- hidden input
             input(type="hidden" name="bokFörfattare" class="form-control w-25" id="bookFörfattare" aria-describedby="editBookHelp" value=`${book.Författare}`)
             //- ---
-          .form-group
+          .form-group.form-forfattare
             label(for="författare"  class="h4") Författare
             select(multiple name="författare" class="form-control w-25" id="författare")
               each author in authors
                 option= author.Förnamn + " " +  author.Efternamn
-          .form-group
+          .form-group.form-pris
             label(for="pris"  class="h4") Pris
             input(type="text" name="pris" class="form-control w-25" id="pris" value=`${book.Pris}`)
-          .form-group
+          .form-group.form-utgivningsdatum
             label(for="utgivningsdatum"  class="h4") Utgivningsdatum
             input(type="text" name="utgivningsdatum" class="form-control w-25" id="utgivningsdatum" value=`${book.Utgivningsdatum}`)
             if errMessage
               small(class="text-danger")= errMessage
-          .form-group
+          .form-group.form-forlag
             label(for="förlag"  class="h4") Förlag
             input(type="text" name="förlag" class="form-control w-25" id="förlag" value=`${book.Förlag}`)
-          button(type="submit" class="btn btn-success btn-lg mt-3") Spara ändringar
+          button(type="submit" class="btn btn-success btn-lg mt-3 mybutton") Spara ändringar
+

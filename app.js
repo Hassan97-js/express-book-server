@@ -225,13 +225,13 @@ app.post("/:bookId/edit", async (req, res) => {
 
     // Författare
     let bookAuthor = req.body.författare;
-    if (!bookAuthor) {
+    /*    if (!bookAuthor) {
       bookAuthor = req.body.bokFörfattare;
-    }
+    } */
     const authorName = bookAuthor.match(/([\w+]+)/g);
 
     // Utgivningsdatum
-    if (req.body.utgivningsdatum) {
+    /*  if (req.body.utgivningsdatum) {
       const bookDatePattern = /^\d{4}\-\d{1,2}\-\d{1,2}$/;
       if (!bookDatePattern.test(req.body.utgivningsdatum)) {
         errMessage = "Datumet måste matcha mönstret yyyy-mm-dd";
@@ -242,7 +242,7 @@ app.post("/:bookId/edit", async (req, res) => {
       errMessage = "Datumfältet får inte vara tom";
       res.redirect(`/${bookId}/edit`);
       return;
-    }
+    } */
     // Server connnection/update/BokTitel+Pris+Utgivningsdatum
     const connection = await sql.connect(process.env.CONNECTION);
     const result_authorId = await connection
