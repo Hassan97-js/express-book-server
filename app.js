@@ -25,7 +25,7 @@ JOIN BöckerFörfattare bf ON b.ISBN13 = bf.BokID
 JOIN Författare f ON f.ID = bf.FörfattarID
 ORDER BY
         CASE @sortColumn WHEN 'ISBN13' THEN ISBN13 ELSE NULL END,
-        CASE @sortColumn WHEN 'FörnamnEfternamn' THEN concat(f.Förnamn, ' ', f.Efternamn) ELSE NULL END,
+        CASE @sortColumn WHEN 'FörnamnEfternamn' THEN CONCAT(f.Förnamn, ' ', f.Efternamn) ELSE NULL END,
         CASE @sortColumn WHEN 'Pris' THEN Pris ELSE NULL END,
         Titel
 `;
@@ -164,16 +164,6 @@ app.get("/:bookId/edit", async (req, res) => {
     const books = result.recordset;
     const authors = result_authors.recordset;
 
-    for (const book of books) {
-      if (book.Utgivningsdatum) {
-        let bookDate = new Date(book.Utgivningsdatum);
-        const bookDay = String(bookDate.getDate()).padStart(2, "0");
-        const bookMonth = String(bookDate.getMonth() + 1).padStart(2, "0");
-        const bookYear = bookDate.getFullYear();
-        bookDate = `${bookYear}-${bookMonth}-${bookDay}`;
-        book.Utgivningsdatum = bookDate;
-      }
-    }
     res.render("bookEdit", { books, authors, errMessage });
     errMessage = "";
   } catch (err) {
@@ -199,7 +189,7 @@ SET FörfattarID = @fId
 WHERE BokID = @ISBN;
 
 UPDATE Böcker
-SET FörlagsID = @pubishId
+SET FörlagsID = @publishId
 WHERE ISBN13 = @ISBN;
 `;
 
@@ -225,24 +215,8 @@ app.post("/:bookId/edit", async (req, res) => {
 
     // Författare
     let bookAuthor = req.body.författare;
-    /*    if (!bookAuthor) {
-      bookAuthor = req.body.bokFörfattare;
-    } */
     const authorName = bookAuthor.match(/([\w+]+)/g);
 
-    // Utgivningsdatum
-    /*  if (req.body.utgivningsdatum) {
-      const bookDatePattern = /^\d{4}\-\d{1,2}\-\d{1,2}$/;
-      if (!bookDatePattern.test(req.body.utgivningsdatum)) {
-        errMessage = "Datumet måste matcha mönstret yyyy-mm-dd";
-        res.redirect(`/${bookId}/edit`);
-        return;
-      }
-    } else if (req.body.utgivningsdatum === "") {
-      errMessage = "Datumfältet får inte vara tom";
-      res.redirect(`/${bookId}/edit`);
-      return;
-    } */
     // Server connnection/update/BokTitel+Pris+Utgivningsdatum
     const connection = await sql.connect(process.env.CONNECTION);
     const result_authorId = await connection
@@ -252,6 +226,7 @@ app.post("/:bookId/edit", async (req, res) => {
       .query(getAuthorId);
     const authorId = result_authorId.recordset[0].ID;
 
+    // förlag
     const result_publisherId = await connection
       .request()
       .input("publishName", sql.NVarChar, req.body.förlag)
@@ -264,7 +239,7 @@ app.post("/:bookId/edit", async (req, res) => {
       .input("updateTitle", sql.NVarChar, req.body.titel)
       .input("ISBN", sql.NVarChar, req.body.ISBN)
       .input("fId", sql.Int, authorId)
-      .input("pubishId", sql.Int, publisherId)
+      .input("publishId", sql.Int, publisherId)
       .input("updatePris", sql.Int, req.body.pris)
       .input("updateUtgivningsdatum", sql.DateTime2, req.body.utgivningsdatum)
       .query(updateBookQuery);

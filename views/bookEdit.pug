@@ -11,7 +11,7 @@ html(lang="en")
         each book in books
           .form-group.mt-4.form-titel
             label(for="titel" class="h4") Titel
-            input(type="text" name="titel" class="form-control w-25" id="titel" aria-describedby="editBookHelp" value=`${book.Titel}`)
+            input(type="text" name="titel" class="form-control w-25" id="titel" aria-describedby="editBookHelp" required value=`${book.Titel}`)
             //- hidden input
             input(type="hidden" name="ISBN" class="form-control w-25" id="ISBN" aria-describedby="editBookHelp" value=`${book.ISBN13}`)
             //- ---
@@ -20,19 +20,19 @@ html(lang="en")
             //- ---
           .form-group.form-forfattare
             label(for="författare"  class="h4") Författare
-            select(multiple name="författare" class="form-control w-25" id="författare")
+            select(multiple name="författare" class="form-control w-25" id="författare" required)
               each author in authors
                 option= author.Förnamn + " " +  author.Efternamn
           .form-group.form-pris
             label(for="pris"  class="h4") Pris
-            input(type="text" name="pris" class="form-control w-25" id="pris" value=`${book.Pris}`)
+            input(type="text" name="pris" class="form-control w-25" id="pris" required value=`${book.Pris}`)
           .form-group.form-utgivningsdatum
             label(for="utgivningsdatum"  class="h4") Utgivningsdatum
-            input(type="text" name="utgivningsdatum" class="form-control w-25" id="utgivningsdatum" value=`${book.Utgivningsdatum}`)
+            input(type="text" name="utgivningsdatum" class="form-control w-25" id="utgivningsdatum" required value=`${book.Utgivningsdatum}`)
             if errMessage
               small(class="text-danger")= errMessage
           .form-group.form-forlag
             label(for="förlag"  class="h4") Förlag
-            input(type="text" name="förlag" class="form-control w-25" id="förlag" value=`${book.Förlag}`)
+            input(type="text" name="förlag" class="form-control w-25" id="förlag" required value=`${book.Förlag}`)
           button(type="submit" class="btn btn-success btn-lg mt-3 mybutton") Spara ändringar
 
