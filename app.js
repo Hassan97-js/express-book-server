@@ -31,27 +31,34 @@ ORDER BY
 `;
 app.get("/", async (req, res) => {
   try {
+    let querySort = req.query.sortColumn;
+    if (!querySort) {
+      querySort = "Titel";
+    }
+
+    if (querySort === "Författare") {
+      querySort = "FörnamnEfternamn";
+    }
+
     const connection = await sql.connect(process.env.CONNECTION);
     const result = await connection
       .request()
-      .input("sortColumn", sql.NVarChar, req.query.sortColumn)
+      .input("sortColumn", sql.NVarChar, querySort)
       .query(booksQuery);
 
-    let querySort = req.query.sortColumn;
-    if (!querySort) querySort = "Titel";
     const lookup = {
       ISBN13: "ISBN13",
       Titel: "Titel",
       FörnamnEfternamn: "Författare",
       Pris: "Pris"
     };
-    if (querySort === "Författare") {
-      querySort = "FörnamnEfternamn";
-    }
+
     const books = result.recordset;
+
     for (const book of books) {
       if (book.Pris) book.Pris = book.Pris + " kr";
     }
+
     if (querySort) {
       res.render("books", { books, querySort, lookup });
     } else {
@@ -162,6 +169,18 @@ app.get("/:bookId/edit", async (req, res) => {
     const result_authors = await connection.request().query(authorsQuery);
 
     const books = result.recordset;
+
+    for (const book of books) {
+      if (book.Utgivningsdatum) {
+        let bookDate = new Date(book.Utgivningsdatum);
+        const bookDay = String(bookDate.getDate()).padStart(2, "0");
+        const bookMonth = String(bookDate.getMonth() + 1).padStart(2, "0");
+        const bookYear = bookDate.getFullYear();
+        bookDate = `${bookYear}-${bookMonth}-${bookDay}`;
+        book.Utgivningsdatum = bookDate;
+      }
+    }
+
     const authors = result_authors.recordset;
 
     res.render("bookEdit", { books, authors, errMessage });
@@ -212,10 +231,9 @@ WHERE Namn = @publishName
 app.post("/:bookId/edit", async (req, res) => {
   try {
     const bookId = req.body.ISBN;
-
     // Författare
-    let bookAuthor = req.body.författare;
-    const authorName = bookAuthor.match(/([\w+]+)/g);
+    let bookAuthors = req.body.författare;
+    const authorName = bookAuthors.match(/([\w+]+)/g);
 
     // Server connnection/update/BokTitel+Pris+Utgivningsdatum
     const connection = await sql.connect(process.env.CONNECTION);
@@ -225,6 +243,9 @@ app.post("/:bookId/edit", async (req, res) => {
       .input("lastName", sql.NVarChar, authorName[1])
       .query(getAuthorId);
     const authorId = result_authorId.recordset[0].ID;
+    console.log(authorId);
+
+    // console.log(req.body);
 
     // förlag
     const result_publisherId = await connection
@@ -246,7 +267,7 @@ app.post("/:bookId/edit", async (req, res) => {
 
     res.redirect(303, `/book/${bookId}`);
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
   }
 });
 

@@ -22,7 +22,10 @@ html(lang="en")
             label(for="författare"  class="h4") Författare
             select(multiple name="författare" class="form-control w-25" id="författare" required)
               each author in authors
-                option= author.Förnamn + " " +  author.Efternamn
+                if author.Förnamn + " " +  author.Efternamn === book.Författare
+                  option(selected)= author.Förnamn + " " +  author.Efternamn
+                else
+                  option= author.Förnamn + " " +  author.Efternamn
           .form-group.form-pris
             label(for="pris"  class="h4") Pris
             input(type="text" name="pris" class="form-control w-25" id="pris" required value=`${book.Pris}`)

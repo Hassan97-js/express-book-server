@@ -8,7 +8,7 @@ html(lang="en")
         tr
           if books
             each val, key in books[0]
-              th(class="Cursor th-test" onClick=`window.location = '/?sortColumn=${key}';`)= key
+              th(class="Cursor" onClick=`window.location = '/?sortColumn=${key}';`)= key
                 if lookup[querySort] === key
                   i(class="fas fa-arrow-down ml-2")
 
