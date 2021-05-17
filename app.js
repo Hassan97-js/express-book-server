@@ -17,15 +17,16 @@ const booksQuery = `
 SELECT
   ISBN13,
   Titel,
-  CONCAT(f.Förnamn, ' ', f.Efternamn) AS Författare,
+  STRING_AGG(CONCAT(f.Förnamn, ' ', f.Efternamn), ',') AS Författare,
   Pris
 FROM
   Böcker b
 JOIN BöckerFörfattare bf ON b.ISBN13 = bf.BokID
 JOIN Författare f ON f.ID = bf.FörfattarID
+GROUP BY ISBN13, Titel, Pris
 ORDER BY
         CASE @sortColumn WHEN 'ISBN13' THEN ISBN13 ELSE NULL END,
-        CASE @sortColumn WHEN 'FörnamnEfternamn' THEN CONCAT(f.Förnamn, ' ', f.Efternamn) ELSE NULL END,
+        CASE @sortColumn WHEN 'FörnamnEfternamn' THEN STRING_AGG(CONCAT(f.Förnamn, ' ', f.Efternamn), ',') ELSE NULL END,
         CASE @sortColumn WHEN 'Pris' THEN Pris ELSE NULL END,
         Titel
 `;
@@ -73,7 +74,7 @@ const bookQuery = `
 SELECT
   ISBN13,
   Titel,
-  CONCAT(f.Förnamn, ' ', f.Efternamn) AS Författare,
+  STRING_AGG(CONCAT(f.Förnamn, ' ', f.Efternamn), ',') AS Författare,
   Pris,
   Utgivningsdatum,
   fl.Namn AS Förlag
@@ -82,7 +83,8 @@ FROM
 JOIN BöckerFörfattare bf ON b.ISBN13 = bf.BokID
 JOIN Författare f ON f.ID = bf.FörfattarID
 JOIN Förlag fl ON fl.FörlagsID = b.FörlagsID
-WHERE ISBN13 = @bookId;
+WHERE ISBN13 = @bookId
+GROUP BY ISBN13, Titel, Pris, Utgivningsdatum, fl.Namn;
 `;
 
 const bookButicsQuery = `
@@ -135,7 +137,7 @@ const editBookQuery = `
 SELECT
   ISBN13,
   Titel,
-  CONCAT(f.Förnamn, ' ', f.Efternamn) AS Författare,
+ STRING_AGG(CONCAT(f.Förnamn, ' ', f.Efternamn), ',') AS Forfattare,
   Pris,
   Utgivningsdatum,
   fl.Namn AS Förlag
@@ -144,7 +146,8 @@ FROM
 JOIN BöckerFörfattare bf ON b.ISBN13 = bf.BokID
 JOIN Författare f ON f.ID = bf.FörfattarID
 JOIN Förlag fl ON fl.FörlagsID = b.FörlagsID
-WHERE ISBN13 = @bookId;
+WHERE ISBN13 = @bookId
+GROUP BY ISBN13, Titel, Pris, Utgivningsdatum, fl.Namn
 `;
 
 const authorsQuery = `
@@ -167,8 +170,18 @@ app.get("/:bookId/edit", async (req, res) => {
       .query(editBookQuery);
 
     const result_authors = await connection.request().query(authorsQuery);
+    let multipleAuthors = [];
+    let book = [];
 
     const books = result.recordset;
+
+    for (const book of books) {
+      multipleAuthors.push(book.Författare);
+    }
+
+    books[0].Forfattare = books[0].Forfattare.split(",");
+
+    console.log(books);
 
     for (const book of books) {
       if (book.Utgivningsdatum) {
@@ -203,10 +216,6 @@ UPDATE Böcker
 SET Pris = @updatePris
 WHERE ISBN13 = @ISBN;
 
-UPDATE BöckerFörfattare
-SET FörfattarID = @fId
-WHERE BokID = @ISBN;
-
 UPDATE Böcker
 SET FörlagsID = @publishId
 WHERE ISBN13 = @ISBN;
@@ -228,22 +237,57 @@ FROM
 WHERE Namn = @publishName
 `;
 
+const deleteIsbn = `
+DELETE FROM BöckerFörfattare
+WHERE BokID = @bokId
+`;
+
+const insertNewAuthor = `
+INSERT INTO BöckerFörfattare (BokID, FörfattarID)
+VALUES (@bokId, @författarID)
+`;
+
 app.post("/:bookId/edit", async (req, res) => {
   try {
     const bookId = req.body.ISBN;
     // Författare
     let bookAuthors = req.body.författare;
-    const authorName = bookAuthors.match(/([\w+]+)/g);
+    console.log(bookAuthors);
 
-    // Server connnection/update/BokTitel+Pris+Utgivningsdatum
     const connection = await sql.connect(process.env.CONNECTION);
-    const result_authorId = await connection
+
+    console.log(bookAuthors);
+
+    // delete the selected book
+    const deleteResult = await connection
       .request()
-      .input("firstName", sql.NVarChar, authorName[0])
-      .input("lastName", sql.NVarChar, authorName[1])
-      .query(getAuthorId);
-    const authorId = result_authorId.recordset[0].ID;
-    console.log(authorId);
+      .input("bokId", sql.NVarChar, bookId)
+      .query(deleteIsbn);
+
+    console.log(deleteResult);
+
+    for (const name of bookAuthors) {
+      //console.log(name);
+      const firstName = name.match(/([\w+]+)/g)[0];
+      const lastName = name.match(/([\w+]+)/g)[1];
+
+      console.log(name.match(/([\w+]+)/g)[0], " ", name.match(/([\w+]+)/g)[1]);
+
+      const result_authorId = await connection
+        .request()
+        .input("firstName", sql.NVarChar, firstName)
+        .input("lastName", sql.NVarChar, lastName)
+        .query(getAuthorId);
+      const authorId = result_authorId.recordset[0].ID;
+      console.log(authorId);
+
+      const result_insert = await connection
+        .request()
+        .input("bokId", sql.NVarChar, bookId)
+        .input("författarID", sql.Int, authorId)
+        .query(insertNewAuthor);
+      console.log(result_insert);
+    }
 
     // console.log(req.body);
 
@@ -259,7 +303,6 @@ app.post("/:bookId/edit", async (req, res) => {
       .request()
       .input("updateTitle", sql.NVarChar, req.body.titel)
       .input("ISBN", sql.NVarChar, req.body.ISBN)
-      .input("fId", sql.Int, authorId)
       .input("publishId", sql.Int, publisherId)
       .input("updatePris", sql.Int, req.body.pris)
       .input("updateUtgivningsdatum", sql.DateTime2, req.body.utgivningsdatum)
@@ -267,7 +310,7 @@ app.post("/:bookId/edit", async (req, res) => {
 
     res.redirect(303, `/book/${bookId}`);
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
   }
 });
 
