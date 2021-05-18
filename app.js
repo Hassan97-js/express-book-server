@@ -170,15 +170,13 @@ app.get("/:bookId/edit", async (req, res) => {
       .query(editBookQuery);
 
     const result_authors = await connection.request().query(authorsQuery);
-    let multipleAuthors = [];
 
     const books = result.recordset;
 
-    for (const book of books) {
-      multipleAuthors.push(book.Författare);
-    }
+    books[0].Forfattare = books[0].Forfattare.split(", ");
+    console.log(books[0]);
 
-    books[0].Forfattare = books[0].Forfattare.split(",");
+    console.log(books[0].Forfattare);
 
     for (const book of books) {
       if (book.Utgivningsdatum) {
